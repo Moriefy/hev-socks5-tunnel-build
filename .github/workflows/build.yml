@@ -1,0 +1,32 @@
+name: Build hev-socks5-tunnel (arm64-v8a)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nttld/setup-ndk@v1
+        id: ndk
+        with:
+          ndk-version: r27c
+          add-to-path: true
+      - name: Build
+        run: |
+          mkdir -p jni
+          printf 'APP_OPTIM := release\nAPP_PLATFORM := android-21\nAPP_ABI := arm64-v8a\nAPP_CFLAGS := -O2\nAPP_SUPPORT_FLEXIBLE_PAGE_SIZES := true\nNDK_TOOLCHAIN_VERSION := clang\n' > jni/Application.mk
+          ln -sf ../Android.mk jni/Android.mk
+          ndk-build -j4 NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./jni/Application.mk
+      - name: Check
+        run: |
+          find libs -name '*.so' -exec ls -lh {} \;
+          file libs/arm64-v8a/libhev-socks5-tunnel.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libhev-socks5-tunnel-arm64
+          path: libs/arm64-v8a/*.so
